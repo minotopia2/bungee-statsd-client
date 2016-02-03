@@ -15,7 +15,7 @@ import java.util.concurrent.ExecutorService;
  * received by the client.
  * </p>
  *
- * <p>Three key methods are provided for the submission of data-points for the application under
+ * Three key methods are provided for the submission of data-points for the application under
  * scrutiny:
  * <ul>
  *   <li>{@link #incrementCounter} - adds one to the value of the specified named counter</li>
@@ -25,7 +25,6 @@ import java.util.concurrent.ExecutorService;
  * From the perspective of the application, these methods are non-blocking, with the resulting
  * IO operations being carried out in a separate thread. Furthermore, these methods are guaranteed
  * not to throw an exception which may disrupt application execution.
- * </p>
  *
  * <p>As part of a clean system shutdown, the {@link #stop()} method should be invoked
  * on any StatsD clients.</p>

@@ -63,6 +63,8 @@ public interface StatsDClient {
 
     /**
      * Convenience method equivalent to {@link #incrementCounter(String)}.
+     * @param aspect
+     *     the name of the counter to increment
      */
     void increment(String aspect);
 
@@ -78,6 +80,9 @@ public interface StatsDClient {
 
     /**
      * Convenience method equivalent to {@link #decrementCounter(String)}.
+     *
+     *  @param aspect
+     *     the name of the counter to decrement
      */
     void decrement(String aspect);
 
@@ -95,6 +100,11 @@ public interface StatsDClient {
 
     /**
      * Convenience method equivalent to {@link #recordGaugeValue(String, long)} but for double values.
+     *
+     * @param aspect
+     *     the name of the gauge
+     * @param value
+     *     the new reading of the gauge
      */
     void recordGaugeValue(String aspect, double value);
 
@@ -112,16 +122,31 @@ public interface StatsDClient {
 
     /**
      * Convenience method equivalent to {@link #recordGaugeDelta(String, long)} but for double deltas.
+     *
+     * @param aspect
+     *     the name of the gauge
+     * @param delta
+     *     the +/- delta to apply to the gauge
      */
     void recordGaugeDelta(String aspect, double delta);
 
     /**
      * Convenience method equivalent to {@link #recordGaugeValue(String, long)}.
+     *
+     * @param aspect
+     *     the name of the gauge
+     * @param value
+     *     the new reading of the gauge
      */
     void gauge(String aspect, long value);
 
     /**
      * Convenience method equivalent to {@link #recordGaugeValue(String, double)}.
+     *
+     * @param aspect
+     *     the name of the gauge
+     * @param value
+     *     the new reading of the gauge
      */
     void gauge(String aspect, double value);
 
@@ -140,6 +165,11 @@ public interface StatsDClient {
 
     /**
      * Convenience method equivalent to {@link #recordSetEvent(String, String)}.
+     *
+     * @param aspect
+     *     the name of the set
+     * @param eventName
+     *     the value to be added to the set
      */
     void set(String aspect, String eventName);
 
@@ -156,14 +186,14 @@ public interface StatsDClient {
     void recordExecutionTime(String aspect, long timeInMs);
 
     /**
-     * Adjusts the specified counter by a given delta.
+     * Records an execution time.
      *
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
      *
      * @param aspect
      *     the name of the counter to adjust
-     * @param delta
-     *     the amount to adjust the counter by
+     * @param timeInMs
+     *     the execution time to record, in milliseconds
      * @param sampleRate
      *     the sampling rate being employed. For example, a rate of 0.1 would tell StatsD that this timer is being sent
      *     sampled every 1/10th of the time, so that it updates its timer_counters appropriately.
@@ -179,13 +209,18 @@ public interface StatsDClient {
      *
      * @param aspect
      *     the name of the timed operation
-     * @param timeInMs
+     * @param systemTimeMillisAtStart
      *     the system time, in millis, at the start of the operation that has just completed
      */
     void recordExecutionTimeToNow(String aspect, long systemTimeMillisAtStart);
 
     /**
      * Convenience method equivalent to {@link #recordExecutionTime(String, long)}.
+     *
+     * @param aspect
+     *     the name of the timed operation
+     * @param value
+     *     the time in milliseconds
      */
     void time(String aspect, long value);
 
