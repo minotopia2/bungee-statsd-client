@@ -1,17 +1,20 @@
 package com.timgroup.statsd;
 
+import net.md_5.bungee.api.plugin.Plugin;
+
 import java.nio.charset.Charset;
 import java.text.NumberFormat;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
 
 /**
  * A simple StatsD client implementation facilitating metrics recording.
- * 
+ *
  * <p>Upon instantiation, this client will establish a socket connection to a StatsD instance
  * running on the specified host and port. Metrics are then sent over this connection as they are
  * received by the client.
  * </p>
- * 
+ *
  * <p>Three key methods are provided for the submission of data-points for the application under
  * scrutiny:
  * <ul>
@@ -23,10 +26,10 @@ import java.util.Locale;
  * IO operations being carried out in a separate thread. Furthermore, these methods are guaranteed
  * not to throw an exception which may disrupt application execution.
  * </p>
- * 
+ *
  * <p>As part of a clean system shutdown, the {@link #stop()} method should be invoked
  * on any StatsD clients.</p>
- * 
+ *
  * @author Tom Denley
  *
  */
@@ -34,9 +37,7 @@ public final class NonBlockingStatsDClient extends ConvenienceMethodProvidingSta
 
     private static final Charset STATS_D_ENCODING = Charset.forName("UTF-8");
 
-    private static final StatsDClientErrorHandler NO_OP_HANDLER = new StatsDClientErrorHandler() {
-        @Override public void handle(Exception e) { /* No-op */ }
-    };
+    public static final StatsDClientErrorHandler NO_OP_HANDLER = e -> { /* No-op */ };
 
     private final String prefix;
     private final NonBlockingUdpSender sender;
@@ -50,18 +51,20 @@ public final class NonBlockingStatsDClient extends ConvenienceMethodProvidingSta
      * be established. Once a client has been instantiated in this way, all
      * exceptions thrown during subsequent usage are consumed, guaranteeing
      * that failures in metrics will not affect normal code execution.
-     * 
+     *
      * @param prefix
      *     the prefix to apply to keys sent via this client (can be null or empty for no prefix)
      * @param hostname
      *     the host name of the targeted StatsD server
      * @param port
      *     the port of the targeted StatsD server
+     * @param plugin
+     *     the plugin to use to register submit tasks for async sending of data
      * @throws StatsDClientException
      *     if the client could not be started
      */
-    public NonBlockingStatsDClient(String prefix, String hostname, int port) throws StatsDClientException {
-        this(prefix, hostname, port, NO_OP_HANDLER);
+    public NonBlockingStatsDClient(String prefix, String hostname, int port, Plugin plugin) throws StatsDClientException {
+        this(prefix, hostname, port, NO_OP_HANDLER, plugin);
     }
 
     /**
@@ -74,7 +77,7 @@ public final class NonBlockingStatsDClient extends ConvenienceMethodProvidingSta
      * exceptions thrown during subsequent usage are passed to the specified
      * handler and then consumed, guaranteeing that failures in metrics will
      * not affect normal code execution.
-     * 
+     *
      * @param prefix
      *     the prefix to apply to keys sent via this client (can be null or empty for no prefix)
      * @param hostname
@@ -83,14 +86,23 @@ public final class NonBlockingStatsDClient extends ConvenienceMethodProvidingSta
      *     the port of the targeted StatsD server
      * @param errorHandler
      *     handler to use when an exception occurs during usage
+     * @param plugin
+     *     the plugin to use to register submit tasks for async sending of data
      * @throws StatsDClientException
      *     if the client could not be started
      */
-    public NonBlockingStatsDClient(String prefix, String hostname, int port, StatsDClientErrorHandler errorHandler) throws StatsDClientException {
+    public NonBlockingStatsDClient(String prefix, String hostname, int port, StatsDClientErrorHandler errorHandler,
+                                   Plugin plugin) throws StatsDClientException {
+        this(prefix, hostname, port, errorHandler, new BungeePluginExecutorService(plugin));
+    }
+
+    NonBlockingStatsDClient(String prefix, String hostname, int port, StatsDClientErrorHandler errorHandler,
+                            ExecutorService executor) throws StatsDClientException { //package-private for unit testing without a mock Bungee
         this.prefix = (prefix == null || prefix.trim().isEmpty()) ? "" : (prefix.trim() + ".");
 
         try {
-            this.sender = new NonBlockingUdpSender(hostname, port, STATS_D_ENCODING, errorHandler);
+            this.sender = new NonBlockingUdpSender(hostname, port, STATS_D_ENCODING, errorHandler,
+                    executor);
         } catch (Exception e) {
             throw new StatsDClientException("Failed to start StatsD client", e);
         }
@@ -107,9 +119,9 @@ public final class NonBlockingStatsDClient extends ConvenienceMethodProvidingSta
 
     /**
      * Adjusts the specified counter by a given delta.
-     * 
+     *
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
-     * 
+     *
      * @param aspect
      *     the name of the counter to adjust
      * @param delta
@@ -125,9 +137,9 @@ public final class NonBlockingStatsDClient extends ConvenienceMethodProvidingSta
 
     /**
      * Records the latest fixed value for the specified named gauge.
-     * 
+     *
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
-     * 
+     *
      * @param aspect
      *     the name of the gauge
      * @param value
@@ -165,9 +177,9 @@ public final class NonBlockingStatsDClient extends ConvenienceMethodProvidingSta
     /**
      * StatsD supports counting unique occurrences of events between flushes, Call this method to records an occurrence
      * of the specified named event.
-     * 
+     *
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
-     * 
+     *
      * @param aspect
      *     the name of the set
      * @param eventName
@@ -180,9 +192,9 @@ public final class NonBlockingStatsDClient extends ConvenienceMethodProvidingSta
 
     /**
      * Records an execution time in milliseconds for the specified named operation.
-     * 
+     *
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
-     * 
+     *
      * @param aspect
      *     the name of the timed operation
      * @param timeInMs

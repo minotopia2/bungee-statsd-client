@@ -1,10 +1,8 @@
 package com.timgroup.statsd;
 
-import static java.lang.Long.valueOf;
-import static junit.framework.Assert.assertTrue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.startsWith;
+import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Test;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -12,18 +10,33 @@ import java.net.SocketException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Test;
+import static java.lang.Long.valueOf;
+import static junit.framework.Assert.assertTrue;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertThat;
 
 public final class NonBlockingStatsDClientTest {
 
     private static final int STATSD_SERVER_PORT = 17254;
 
-    private final NonBlockingStatsDClient client = new NonBlockingStatsDClient("my.prefix", "localhost", STATSD_SERVER_PORT);
+    private final ExecutorService executor = Executors.newSingleThreadExecutor(new ThreadFactory() {
+        final ThreadFactory delegate = Executors.defaultThreadFactory();
+        @Override public Thread newThread(Runnable r) {
+            Thread result = delegate.newThread(r);
+            result.setName("StatsD-" + result.getName());
+            result.setDaemon(true);
+            return result;
+        }
+    });
+    private final NonBlockingStatsDClient client = new NonBlockingStatsDClient("my.prefix", "localhost", STATSD_SERVER_PORT,
+            NonBlockingStatsDClient.NO_OP_HANDLER, executor);
     private final DummyStatsDServer server = new DummyStatsDServer(STATSD_SERVER_PORT);
 
     @After
@@ -36,7 +49,7 @@ public final class NonBlockingStatsDClientTest {
     sends_counter_value_to_statsd() throws Exception {
         client.count("mycount", Long.MAX_VALUE);
         server.waitForMessage();
-        
+
         assertThat(server.messagesReceived(), contains("my.prefix.mycount:9223372036854775807|c"));
     }
 
@@ -52,7 +65,7 @@ public final class NonBlockingStatsDClientTest {
     sends_counter_increment_to_statsd() throws Exception {
         client.incrementCounter("myinc");
         server.waitForMessage();
-        
+
         assertThat(server.messagesReceived(), contains("my.prefix.myinc:1|c"));
     }
 
@@ -60,7 +73,7 @@ public final class NonBlockingStatsDClientTest {
     sends_counter_decrement_to_statsd() throws Exception {
         client.decrementCounter("mydec");
         server.waitForMessage();
-        
+
         assertThat(server.messagesReceived(), contains("my.prefix.mydec:-1|c"));
     }
 
@@ -68,7 +81,7 @@ public final class NonBlockingStatsDClientTest {
     sends_gauge_to_statsd() throws Exception {
         client.recordGaugeValue("mygauge", Long.MAX_VALUE);
         server.waitForMessage();
-        
+
         assertThat(server.messagesReceived(), contains("my.prefix.mygauge:9223372036854775807|g"));
     }
 
@@ -132,7 +145,7 @@ public final class NonBlockingStatsDClientTest {
     sends_set_to_statsd() throws Exception {
         client.recordSetEvent("myset", "test");
         server.waitForMessage();
-        
+
         assertThat(server.messagesReceived(), contains("my.prefix.myset:test|s"));
     }
 
@@ -140,7 +153,7 @@ public final class NonBlockingStatsDClientTest {
     sends_timer_to_statsd() throws Exception {
         client.recordExecutionTime("mytime", 123L);
         server.waitForMessage();
-        
+
         assertThat(server.messagesReceived(), contains("my.prefix.mytime:123|ms"));
     }
 
@@ -181,7 +194,8 @@ public final class NonBlockingStatsDClientTest {
 
     @Test(timeout=5000L) public void
     allows_empty_prefix() {
-        final NonBlockingStatsDClient emptyPrefixClient = new NonBlockingStatsDClient(" ", "localhost", STATSD_SERVER_PORT);
+        final NonBlockingStatsDClient emptyPrefixClient = new NonBlockingStatsDClient(" ", "localhost", STATSD_SERVER_PORT,
+                NonBlockingStatsDClient.NO_OP_HANDLER, executor);
         try {
             emptyPrefixClient.count("mycount", 24L);
             server.waitForMessage();
@@ -193,7 +207,8 @@ public final class NonBlockingStatsDClientTest {
 
     @Test(timeout=5000L) public void
     allows_null_prefix() {
-        final NonBlockingStatsDClient nullPrefixClient = new NonBlockingStatsDClient(null, "localhost", STATSD_SERVER_PORT);
+        final NonBlockingStatsDClient nullPrefixClient = new NonBlockingStatsDClient(null, "localhost", STATSD_SERVER_PORT,
+                NonBlockingStatsDClient.NO_OP_HANDLER, executor);
         try {
             nullPrefixClient.count("mycount", 24L);
             server.waitForMessage();
@@ -204,7 +219,7 @@ public final class NonBlockingStatsDClientTest {
     }
 
     private static final class DummyStatsDServer {
-        private final List<String> messagesReceived = new ArrayList<String>();
+        private final List<String> messagesReceived = new ArrayList<>();
         private final DatagramSocket server;
 
         public DummyStatsDServer(int port) {
@@ -219,7 +234,7 @@ public final class NonBlockingStatsDClientTest {
                         final DatagramPacket packet = new DatagramPacket(new byte[256], 256);
                         server.receive(packet);
                         messagesReceived.add(new String(packet.getData(), Charset.forName("UTF-8")).trim());
-                    } catch (Exception e) { }
+                    } catch (Exception ignore) { }
                 }
             }).start();
         }
@@ -232,12 +247,12 @@ public final class NonBlockingStatsDClientTest {
             while (messagesReceived.isEmpty()) {
                 try {
                     Thread.sleep(50L);
-                } catch (InterruptedException e) {}
+                } catch (InterruptedException ignore) {}
             }
         }
 
         public List<String> messagesReceived() {
-            return new ArrayList<String>(messagesReceived);
+            return new ArrayList<>(messagesReceived);
         }
     }
 }

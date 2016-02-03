@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>me.minotopia</groupId>
+    <artifactId>bungee-statsd-client</artifactId>
+    <packaging>jar</packaging>
+    <version>1.0.0-SNAPSHOT</version>
+
+    <ciManagement>
+        <system>jenkins</system>
+        <url>https://ci.minotopia.me/job/public~bungee-statsd-client/</url>
+    </ciManagement>
+
+    <distributionManagement>
+        <downloadUrl>https://ci.minotopia.me/job/public~bungee-statsd-client/</downloadUrl>
+        <repository>
+            <id>xxyy-repo</id>
+            <url>https://repo.l1t.li/xxyy-public/</url>
+        </repository>
+    </distributionManagement>
+
+    <properties>
+        <bungeecord.version>1.8</bungeecord.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>${maven.compiler.source}</maven.compiler.target>
+    </properties>
+
+    <licenses>
+        <license>
+            <name>The MIT License (MIT)</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/minotopiame/bungee-statsd-client</url>
+        <connection>scm:git:git@github.com:minotopiame/bungee-statsd-client.git</connection>
+        <developerConnection>scm:git:git@github.com:minotopiame/bungee-statsd-client.git</developerConnection>
+    </scm>
+
+    <repositories>
+        <repository>
+            <id>sonatype-snapshots</id> <!-- bungeecord-api -->
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>net.md-5</groupId>
+            <artifactId>bungeecord-api</artifactId>
+            <version>${bungeecord.version}-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-library</artifactId>
+            <version>1.3</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>
