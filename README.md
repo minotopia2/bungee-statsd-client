@@ -21,7 +21,7 @@ The client jar is distributed via a custom Maven repository.
 <dependency>
     <groupId>me.minotopia</groupId>
     <artifactId>bungee-statsd-client</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.1</version>
 </dependency>
 ```
 
